@@ -20,6 +20,12 @@ impl User {
             profile,
         }
     }
+    pub fn set_password(self, password: &str) -> Self {
+        User {
+            password: String::from(password),
+            ..self
+        }
+    }
     pub fn id(&self) -> &Id {
         self.domain_metadata.id()
     }
@@ -32,8 +38,8 @@ impl User {
     pub fn profile(&self) -> &Profile {
         &self.profile
     }
-    pub fn roles<'a>(&'a self) -> Vec<&'a str> {
-        let roles: Vec<&'a str> = self.roles.iter().map(|r| r.as_str()).collect();
+    pub fn roles(&self) -> Vec<&String> {
+        let roles: Vec<&String> = self.roles.iter().collect();
         roles
     }
     pub fn add_role(&mut self, role: &str) -> &mut Self {
@@ -51,7 +57,7 @@ impl User {
 
 #[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Profile {
-    picture: Metadata,
+    picture: Option<Metadata>,
     firstname: String,
     lastname: String,
     phone_number: String,
@@ -60,8 +66,29 @@ pub struct Profile {
 }
 
 impl Profile {
+    pub fn picture(&self) -> &Option<Metadata> {
+        &self.picture
+    }
+    pub fn firstname(&self) -> &str {
+        &self.firstname
+    }
+    pub fn lastname(&self) -> &str {
+        &self.lastname
+    }
+    pub fn phone_number(&self) -> &str {
+        &self.phone_number
+    }
+    pub fn email_address(&self) -> &str {
+        &self.email_address
+    }
+    pub fn address(&self) -> &Address {
+        &self.address
+    }
+}
+
+impl Profile {
     pub fn new(
-        picture: Metadata,
+        picture: Option<Metadata>,
         firstname: &str,
         lastname: &str,
         phone_number: &str,
@@ -77,6 +104,33 @@ impl Profile {
             address,
         }
     }
+    pub fn set_picture(self, picture: Metadata) -> Self {
+        Profile {
+            picture: Some(picture),
+            ..self
+        }
+    }
+    pub fn set_firstname(self, firstname: String) -> Self {
+        Profile { firstname, ..self }
+    }
+    pub fn set_lastname(self, lastname: String) -> Self {
+        Profile { lastname, ..self }
+    }
+    pub fn set_phone_number(self, phone_number: String) -> Self {
+        Profile {
+            phone_number,
+            ..self
+        }
+    }
+    pub fn set_email_address(self, email_address: String) -> Self {
+        Profile {
+            email_address,
+            ..self
+        }
+    }
+    pub fn set_address(self, address: Address) -> Self {
+        Profile { address, ..self }
+    }
 }
 
 #[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize)]
@@ -87,6 +141,51 @@ pub struct Address {
     municipality: String,
     province: String,
     country: String,
+}
+
+impl Address {
+    pub fn set_street(self, street: String) -> Self {
+        Address { street, ..self }
+    }
+    pub fn set_number(self, number: String) -> Self {
+        Address { number, ..self }
+    }
+    pub fn set_po_box(self, po_box: String) -> Self {
+        Address { po_box, ..self }
+    }
+    pub fn set_municipality(self, municipality: String) -> Self {
+        Address {
+            municipality,
+            ..self
+        }
+    }
+    pub fn set_province(self, province: String) -> Self {
+        Address { province, ..self }
+    }
+    pub fn set_country(self, country: String) -> Self {
+        Address { country, ..self }
+    }
+}
+
+impl Address {
+    pub fn street(&self) -> &str {
+        &self.street
+    }
+    pub fn number(&self) -> &str {
+        &self.number
+    }
+    pub fn po_box(&self) -> &str {
+        &self.po_box
+    }
+    pub fn municipality(&self) -> &str {
+        &self.municipality
+    }
+    pub fn province(&self) -> &str {
+        &self.province
+    }
+    pub fn country(&self) -> &str {
+        &self.country
+    }
 }
 
 impl Address {
@@ -118,7 +217,7 @@ mod tests {
     #[test]
     fn test_user_creation() {
         let profile = Profile::new(
-            Default::default(),
+            Some(Default::default()),
             "nordine",
             "bittich",
             "(0032)0444/999.99.33",
@@ -129,9 +228,9 @@ mod tests {
         assert_eq!("nickk", user.nickname());
         assert_eq!("xxxx", user.password());
         assert!(!user.id().is_empty());
-        assert_eq!("nordine", user.profile().firstname);
-        assert_eq!("bittich", user.profile().lastname);
-        assert_eq!("(0032)0444/999.99.33", user.profile().phone_number);
+        assert_eq!("nordine", user.profile().firstname());
+        assert_eq!("bittich", user.profile().lastname());
+        assert_eq!("(0032)0444/999.99.33", user.profile().phone_number());
 
         let roles = &user.roles();
         assert_eq!(&vec!["user", "admin"], roles);
