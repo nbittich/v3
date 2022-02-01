@@ -1,8 +1,7 @@
-use crate::WithMetadataMacro;
-use crate::{Id, Metadata, WithMetadata};
+use crate::{Id, Metadata, WithJsonProcessor, WithMetadata};
 use serde::{Deserialize, Serialize};
 
-#[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize, WithMetadataMacro)]
+#[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize, WithMetadata, WithJsonProcessor)]
 pub struct User {
     domain_metadata: Metadata,
     nickname: String,

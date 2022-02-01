@@ -18,7 +18,9 @@ impl Default for Id {
     }
 }
 
-#[derive(PartialOrd, PartialEq, Debug, Default, Serialize, Deserialize)]
+#[derive(
+    PartialOrd, PartialEq, Debug, Default, Serialize, Deserialize, crate::WithJsonProcessor,
+)]
 pub struct Metadata {
     id: Id,
     version: Option<u32>,
@@ -55,22 +57,10 @@ impl Metadata {
 pub trait WithMetadata {
     fn domain_metadata_mut(&mut self) -> &mut Metadata;
 }
-pub trait WithJsonProcessor<'a, T> {
+pub trait WithJsonProcessor<'a> {
+    type Output;
     fn to_json(&self) -> Result<String, RuntimeException>;
-    fn from_json(s: &'a str) -> Result<T, RuntimeException>;
-}
-impl<'a, T> WithJsonProcessor<'a, T> for T
-where
-    T: Serialize + Deserialize<'a>,
-{
-    fn to_json(&self) -> Result<String, RuntimeException> {
-        let json = serde_json::to_string(self)?;
-        Ok(json)
-    }
-    fn from_json(s: &'a str) -> Result<T, RuntimeException> {
-        let obj: T = serde_json::from_str(s)?;
-        Ok(obj)
-    }
+    fn from_json(s: &'a str) -> Result<Self::Output, RuntimeException>;
 }
 
 #[cfg(test)]
