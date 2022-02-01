@@ -2,7 +2,7 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{Data, Field, Type};
+use syn::{Data, Type};
 
 #[proc_macro_derive(WithMetadataMacro)]
 pub fn with_metadata_derive(input: TokenStream) -> TokenStream {
