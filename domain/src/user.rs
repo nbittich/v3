@@ -146,9 +146,9 @@ mod tests {
         let user = User::from_json(json.as_str()).unwrap();
 
         let mut user: Box<dyn WithMetadata> = Box::new(user);
-        user.domain_metadata().update_metadata();
-        assert_eq!(&Some(1), user.domain_metadata().version());
-        let json = user.domain_metadata().to_json();
+        user.domain_metadata_mut().update_metadata();
+        assert_eq!(&Some(1), user.domain_metadata_mut().version());
+        let json = user.domain_metadata_mut().to_json();
         println!("{}", json.unwrap());
     }
 }

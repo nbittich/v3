@@ -53,7 +53,7 @@ impl Metadata {
 }
 
 pub trait WithMetadata {
-    fn domain_metadata(&mut self) -> &mut Metadata;
+    fn domain_metadata_mut(&mut self) -> &mut Metadata;
 }
 pub trait WithJsonProcessor<'a, T> {
     fn to_json(&self) -> Result<String, RuntimeException>;
