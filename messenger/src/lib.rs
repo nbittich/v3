@@ -59,9 +59,11 @@ impl RedisService {
         };
         let manager = bb8_redis::RedisConnectionManager::new(connection_info).unwrap();
         let pool = bb8::Pool::builder()
-        .max_size(50)
-        .connection_timeout(Duration::from_secs(3600))
-        .build(manager).await.unwrap();
+            .max_size(50)
+            .connection_timeout(Duration::from_secs(3600))
+            .build(manager)
+            .await
+            .unwrap();
 
         RedisService { pool }
     }
@@ -70,39 +72,40 @@ impl RedisService {
 #[cfg(test)]
 mod tests {
     use bb8_redis::redis::Msg;
-    use futures_util::{StreamExt, Future};
-    use std::process::Output;
+    use futures_util::StreamExt;
+
     use std::sync::Arc;
-    use std::thread::{self};
+
     use std::time::{Duration, SystemTime};
 
     use crate::{RedisService, Subscription};
 
-
-    fn recv<F, T>(sub: Subscription,f: F) -> tokio::task::JoinHandle<()>
+    fn recv<F, T>(sub: Subscription, f: F) -> tokio::task::JoinHandle<()>
     where
-        F: Fn(Msg) -> T+Send+'static,
-        T: Send,{
+        F: Fn(Msg) -> T + Send + 'static,
+        T: Send,
+    {
         tokio::spawn(async move {
             let mut sub = sub.conn;
             let mut pubsub_stream = sub.on_message();
             loop {
-                let msg : Msg = pubsub_stream.next().await.unwrap();
+                let msg: Msg = pubsub_stream.next().await.unwrap();
                 f(msg);
             }
         })
     }
 
-    fn send (redis_service: &Arc<RedisService>, chan: &'static str, msg : String) -> tokio::task::JoinHandle<()>{
+    fn send(
+        redis_service: &Arc<RedisService>,
+        chan: &'static str,
+        msg: String,
+    ) -> tokio::task::JoinHandle<()> {
         let clone = Arc::clone(redis_service);
         tokio::spawn(async move {
-            let res = clone
-                .publish(chan, msg)
-                .await
-                ;
-                if let Some(_) = res.err() {
-                    println!("woops, some packet lost, shit happens");
-                }
+            let res = clone.publish(chan, msg).await;
+            if let Some(_) = res.err() {
+                println!("woops, some packet lost, shit happens");
+            }
         })
     }
 
@@ -116,17 +119,16 @@ mod tests {
         let i = 2;
         let mut futs = Vec::with_capacity(1000001);
         for a in 0..i {
-            futs.push(send(&redis_service, "heyya", format!("ola amigo{a}" )));
+            futs.push(send(&redis_service, "heyya", format!("ola amigo{a}")));
         }
 
-       let process_msg= |msg: Msg| {
-                let pubsub_msg: String = msg.get_payload().unwrap();
-                println!("{}", pubsub_msg);
-            };
+        let process_msg = |msg: Msg| {
+            let pubsub_msg: String = msg.get_payload().unwrap();
+            println!("{}", pubsub_msg);
+        };
         futs.push(recv(subscription, process_msg));
-        
-        let _ = futures_util::future::join_all(futs)
-            .await;
+
+        let _ = futures_util::future::join_all(futs).await;
 
         println!(
             "Overall time spent: {:?}",
