@@ -1,12 +1,13 @@
 #![feature(thread_id_value)]
 extern crate core;
 
-use bb8::{Pool, RunError};
+use bb8::{Pool, RunError, PooledConnection};
 use bb8_redis::redis::aio::PubSub;
 use bb8_redis::redis::{
-    AsyncCommands, ConnectionAddr, ConnectionInfo, RedisConnectionInfo, RedisError, RedisResult,
+    AsyncCommands, ConnectionAddr, ConnectionInfo, RedisConnectionInfo, RedisError, RedisResult, Msg, Connection,
 };
 use bb8_redis::RedisConnectionManager;
+use futures_util::StreamExt;
 use std::env::var;
 use std::time::Duration;
 
@@ -19,13 +20,27 @@ pub struct Subscription {
     name: String,
     conn: PubSub,
 }
+impl Subscription {
+    fn recv<F, T>( self, f: F) -> tokio::task::JoinHandle<()>
+    where
+        F: Fn(Msg) -> T + Send + 'static,
+        T: Send,
+    {
+        tokio::spawn(async move {
+            let mut sub = self.conn;
+             let mut pubsub_stream = sub.on_message();
+            while let Some(msg) = pubsub_stream.next().await {
+                f(msg);
+            }
+        })
+    }
+}
 pub struct RedisService {
     pool: Pool<RedisConnectionManager>,
 }
 impl RedisService {
     pub async fn subscribe(&self, chan: &str) -> Result<Subscription, RedisError> {
-        let clone = self.pool.clone();
-        let conn = clone.dedicated_connection().await.unwrap();
+        let conn = self.pool.dedicated_connection().await?;
         let mut pub_sub = conn.into_pubsub();
         pub_sub.subscribe(chan).await?;
         Ok(Subscription {
@@ -33,15 +48,20 @@ impl RedisService {
             conn: pub_sub,
         })
     }
-    pub async fn publish(&self, chan: &str, msg: String) -> RedisResult<()> {
-        let pool = self.pool.clone();
-        let mut conn = pool.get().await.map_err(|e| match e {
+
+    async fn pick_conn_from_pool(&self) -> RedisResult<PooledConnection<'_, RedisConnectionManager>> {
+        let conn = self.pool.get().await.map_err(|e| match e {
             RunError::User(e) => e,
             RunError::TimedOut => RedisError::from(std::io::Error::new(
                 std::io::ErrorKind::TimedOut,
                 "redis timed out",
             )),
-        })?;
+        });
+        conn
+    }
+
+    pub async fn publish(&self, chan: &str, msg: String) -> RedisResult<()> {
+        let mut conn = self.pick_conn_from_pool().await?;
         //tokio::time::sleep(Duration::from_secs(10)).await;
         conn.publish(chan, &msg).await
     }
@@ -72,7 +92,6 @@ impl RedisService {
 #[cfg(test)]
 mod tests {
     use bb8_redis::redis::Msg;
-    use futures_util::StreamExt;
 
     use std::sync::Arc;
 
@@ -80,20 +99,7 @@ mod tests {
 
     use crate::{RedisService, Subscription};
 
-    fn recv<F, T>(sub: Subscription, f: F) -> tokio::task::JoinHandle<()>
-    where
-        F: Fn(Msg) -> T + Send + 'static,
-        T: Send,
-    {
-        tokio::spawn(async move {
-            let mut sub = sub.conn;
-            let mut pubsub_stream = sub.on_message();
-            loop {
-                let msg: Msg = pubsub_stream.next().await.unwrap();
-                f(msg);
-            }
-        })
-    }
+   
 
     fn send(
         redis_service: &Arc<RedisService>,
@@ -115,6 +121,7 @@ mod tests {
         let redis_service = Arc::new(RedisService::create_pool().await);
 
         let subscription = redis_service.subscribe("heyya").await.unwrap();
+        let subscription2 = redis_service.subscribe("heyya").await.unwrap();
 
         let i = 2;
         let mut futs = Vec::with_capacity(1000001);
@@ -126,7 +133,8 @@ mod tests {
             let pubsub_msg: String = msg.get_payload().unwrap();
             println!("{}", pubsub_msg);
         };
-        futs.push(recv(subscription, process_msg));
+        futs.push(subscription.recv(process_msg));
+        futs.push(subscription2.recv(process_msg));
 
         let _ = futures_util::future::join_all(futs).await;
 
