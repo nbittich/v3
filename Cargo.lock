@@ -743,6 +743,7 @@ dependencies = [
  "async-trait",
  "deadpool",
  "deadpool-lapin",
+ "domain",
  "futures-util",
  "lapin 2.0.0",
  "serde",

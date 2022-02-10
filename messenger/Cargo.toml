@@ -17,3 +17,4 @@ tokio-amqp = "2.0.0"
 tokio-executor-trait = "2.1.0"
 deadpool-lapin = { version = "0.9.1", features = ["rt_tokio_1"] }
 lapin = "2.0.0"
+domain = {path = "../domain"}
