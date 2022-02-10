@@ -1,54 +1,63 @@
-
-use deadpool_lapin::{Config, CreatePoolError, Manager, Pool, Runtime};
-use deadpool_lapin::lapin::{options::BasicPublishOptions, options::BasicConsumeOptions, BasicProperties, Consumer};
+use deadpool::managed::PoolConfig;
 use deadpool_lapin::lapin::options::{BasicAckOptions, QueueDeclareOptions};
+use deadpool_lapin::lapin::publisher_confirm::{Confirmation, PublisherConfirm};
 use deadpool_lapin::lapin::types::FieldTable;
+use deadpool_lapin::lapin::{
+    options::BasicConsumeOptions, options::BasicPublishOptions, BasicProperties, Consumer,
+};
+use deadpool_lapin::{Config, CreatePoolError, Manager, Pool, Runtime};
+use domain::WithJsonProcessor;
 use futures_util::StreamExt;
 use std::env::var;
 use std::error::Error;
-use deadpool::managed::PoolConfig;
-use deadpool_lapin::lapin::publisher_confirm::{Confirmation, PublisherConfirm};
-use domain::WithJsonProcessor;
 
 const AMQP_HOST: &str = "AMQP_HOST";
 const AMQP_PORT: &str = "AMQP_PORT";
 
 struct Messenger {
-    pool: Pool
+    pool: Pool,
 }
 
 impl Messenger {
     pub fn new() -> Result<Messenger, Box<dyn Error>> {
         let pool = Messenger::create_pool()?;
-        Ok(Messenger {
-            pool
-        })
+        Ok(Messenger { pool })
     }
-    pub async fn subscribe(&self, queue: &str) -> Result<Consumer, Box<dyn Error>>{
+    pub async fn subscribe(&self, queue: &str) -> Result<Consumer, Box<dyn Error>> {
         let connection = self.pool.clone().get().await?;
         let channel = connection.create_channel().await?;
         let _ = channel
-            .queue_declare(
+            .queue_declare(queue, QueueDeclareOptions::default(), FieldTable::default())
+            .await?;
+        let consumer = channel
+            .basic_consume(
                 queue,
-                QueueDeclareOptions::default(),
+                "",
+                BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
             .await?;
-        let consumer = channel.basic_consume(queue, "", BasicConsumeOptions::default(), FieldTable::default()).await?;
         Ok(consumer)
     }
 
-    pub async fn publish<'a>(&self, queue: &str, payload: &impl WithJsonProcessor<'a> ) -> Result<Confirmation, Box<dyn Error>> {
+    pub async fn publish<'a>(
+        &self,
+        queue: &str,
+        payload: &impl WithJsonProcessor<'a>,
+    ) -> Result<Confirmation, Box<dyn Error>> {
         let connection = self.pool.clone().get().await?;
         let channel = connection.create_channel().await?;
         let json = payload.to_json()?;
-        let confirmation = channel.basic_publish(
-            "",
-            queue,
-            BasicPublishOptions::default(),
-            json.into_bytes(),
-            BasicProperties::default(),
-        ).await?.await?;
+        let confirmation = channel
+            .basic_publish(
+                "",
+                queue,
+                BasicPublishOptions::default(),
+                json.into_bytes(),
+                BasicProperties::default(),
+            )
+            .await?
+            .await?;
         Ok(confirmation)
     }
 
@@ -60,19 +69,17 @@ impl Messenger {
         cfg.url = Some(format!("amqp://{amqp_host}:{amqp_port}"));
         cfg.create_pool(Some(Runtime::Tokio1))
     }
-
 }
-
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-    use futures_util::StreamExt;
-    use domain::{Address, Profile, User};
     use crate::{BasicAckOptions, Messenger};
+    use domain::{Address, Profile, User};
+    use futures_util::StreamExt;
+    use std::sync::Arc;
 
     #[tokio::test]
-    async fn hello(){
+    async fn hello() {
         let queue = "oops";
         let messenger = Arc::new(Messenger::new().unwrap());
         let mut consumer = Arc::clone(&messenger).subscribe(queue).await.unwrap();
@@ -80,7 +87,7 @@ mod test {
         let clone = Arc::clone(&messenger);
         let publisher_fut = tokio::task::spawn(async move {
             let user = create_user();
-            let _ = clone.publish(queue,&user).await.unwrap();
+            let _ = clone.publish(queue, &user).await.unwrap();
         });
 
         let subscriber_fut = tokio::task::spawn(async move {
@@ -88,10 +95,7 @@ mod test {
                 let (channel, delivery) = msg.expect("error in consumer");
                 let data = &delivery.data;
                 println!("{}", String::from_utf8_lossy(&data[..]));
-                delivery
-                    .ack(BasicAckOptions::default())
-                    .await
-                    .expect("ack");
+                delivery.ack(BasicAckOptions::default()).await.expect("ack");
                 channel.close(100, "BYE").await.unwrap();
             }
         });
@@ -109,6 +113,6 @@ mod test {
             "nordine@keke.com",
             Address::new("pangaert", "20", "19", "Ganshoren", "Bxl", "Belgium"),
         );
-         User::new("nickk", vec!["user", "admin"], "xxxx", profile)
+        User::new("nickk", vec!["user", "admin"], "xxxx", profile)
     }
 }
