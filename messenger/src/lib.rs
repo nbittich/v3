@@ -1,13 +1,13 @@
 use deadpool::managed::PoolConfig;
-use deadpool_lapin::lapin::options::{BasicAckOptions, QueueDeclareOptions};
-use deadpool_lapin::lapin::publisher_confirm::{Confirmation, PublisherConfirm};
+use deadpool_lapin::lapin::options::{QueueDeclareOptions};
+use deadpool_lapin::lapin::publisher_confirm::{Confirmation};
 use deadpool_lapin::lapin::types::FieldTable;
 use deadpool_lapin::lapin::{
     options::BasicConsumeOptions, options::BasicPublishOptions, BasicProperties, Consumer,
 };
-use deadpool_lapin::{Config, CreatePoolError, Manager, Pool, Runtime};
+use deadpool_lapin::{Config, CreatePoolError, Pool, Runtime};
 use domain::WithJsonProcessor;
-use futures_util::StreamExt;
+
 use std::env::var;
 use std::error::Error;
 
@@ -73,10 +73,11 @@ impl Messenger {
 
 #[cfg(test)]
 mod test {
-    use crate::{BasicAckOptions, Messenger};
-    use domain::{Address, Profile, User};
+    use crate::{Messenger};
+    use domain::{Address,   Profile, User};
     use futures_util::StreamExt;
     use std::sync::Arc;
+    use deadpool_lapin::lapin::options::BasicAckOptions;
 
     #[tokio::test]
     async fn hello() {
