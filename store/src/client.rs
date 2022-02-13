@@ -59,7 +59,7 @@ impl StoreClient {
 
 #[cfg(test)]
 mod test {
-    use crate::doc;
+    use crate::{doc, MongoRepository, Repository};
     use futures_util::TryStreamExt;
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;
@@ -85,7 +85,9 @@ mod test {
         let store_client = StoreClient::new(String::from("test")).await.unwrap();
         let db = store_client.get_db();
         let collection = db.collection::<Book>("books");
-        collection.delete_many(doc! {}, None).await.unwrap();
+        let repository = MongoRepository::new(collection);
+
+        repository.delete_many(None).await.unwrap();
         let books = vec![
             Book {
                 title: "The Grapes of Wrath".to_string(),
@@ -96,8 +98,8 @@ mod test {
                 author: "Harper Lee".to_string(),
             },
         ];
-        collection.insert_many(books, None).await.unwrap();
-        let mut cursor_books = collection.find(doc! {}, None).await.unwrap();
+        repository.insert_many(&books).await.unwrap();
+        let mut cursor_books = repository.find_all().await.unwrap();
         while let Some(book) = cursor_books.try_next().await.unwrap() {
             println!("{}", book.title)
         }
