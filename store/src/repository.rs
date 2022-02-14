@@ -1,3 +1,5 @@
+
+
 use crate::{doc, Collection, Document};
 use crate::{Cursor, DeleteResult, FindOptions, InsertManyResult};
 use domain::{Deserialize, Serialize};
@@ -86,6 +88,19 @@ pub trait Repository<T: Serialize + DeserializeOwned + Unpin + Send + Sync> {
         data: &Vec<T>,
     ) -> Result<InsertManyResult, Box<dyn std::error::Error>> {
         let res = self.get_collection().insert_many(data, None).await?;
+        Ok(res)
+    }
+
+    async fn find_by_id(&self, id: &str) -> Result<Option<T>, Box<dyn std::error::Error>> {
+        let collection = self.get_collection();
+        let res = collection.find_one(doc! {"_id": id}, None).await?;
+        Ok(res)
+    }
+    async fn delete_by_id(&self, id: String) -> Result<Option<T>, Box<dyn std::error::Error>> {
+        let collection = self.get_collection();
+        let res = collection
+            .find_one_and_delete(doc! {"_id": id}, None)
+            .await?;
         Ok(res)
     }
 }

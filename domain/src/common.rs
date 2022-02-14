@@ -60,6 +60,7 @@ pub trait WithMetadata {
 pub trait WithJsonProcessor<'a> {
     type Output;
     fn to_json(&self) -> Result<String, RuntimeException>;
+    fn to_json_pretty(&self) -> Result<String, RuntimeException>;
     fn from_json(s: &'a str) -> Result<Self::Output, RuntimeException>;
 }
 

@@ -71,6 +71,11 @@ fn impl_with_json_processor_macro(ast: &syn::DeriveInput) -> TokenStream {
                 let json = serde_json::to_string(self)?;
                 Ok(json)
             }
+
+            fn to_json_pretty(&self) -> Result<String, Box<dyn std::error::Error>> {
+                let json = serde_json::to_string_pretty(self)?;
+                Ok(json)
+            }
             fn from_json(s: &'a str) -> Result<Self::Output, Box<dyn std::error::Error>> {
                 let obj: #name = serde_json::from_str(s)?;
                 Ok(obj)
