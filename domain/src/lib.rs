@@ -1,5 +1,7 @@
+mod command;
 mod common;
 mod user;
+pub use command::*;
 pub use common::Id;
 pub use common::Metadata;
 pub use common::RuntimeException;

@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 const AMQP_HOST: &str = "AMQP_HOST";
 const AMQP_PORT: &str = "AMQP_PORT";
-
+#[derive(Debug)]
 pub struct Messenger {
     pool: Pool,
     exchange: String,

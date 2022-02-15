@@ -62,6 +62,7 @@ pub trait WithJsonProcessor<'a> {
     fn to_json(&self) -> Result<String, RuntimeException>;
     fn to_json_pretty(&self) -> Result<String, RuntimeException>;
     fn from_json(s: &'a str) -> Result<Self::Output, RuntimeException>;
+    fn from_json_slice(s: &'a [u8]) -> Result<Self::Output, RuntimeException>;
 }
 
 #[cfg(test)]

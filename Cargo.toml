@@ -4,5 +4,6 @@ members = [
     "domain",
     "domain-macro",
     "messenger",
-    "store"
+    "store",
+    "microservices/user"
 ]

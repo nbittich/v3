@@ -80,6 +80,10 @@ fn impl_with_json_processor_macro(ast: &syn::DeriveInput) -> TokenStream {
                 let obj: #name = serde_json::from_str(s)?;
                 Ok(obj)
             }
+            fn from_json_slice(s: &'a [u8]) -> Result<Self::Output, Box<dyn std::error::Error>> {
+                let obj: #name = serde_json::from_slice(s)?;
+                Ok(obj)
+            }
         }
     };
     gen.into()

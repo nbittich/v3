@@ -1,6 +1,4 @@
-
-
-use crate::{doc, Collection, Document};
+use crate::{doc, to_document, Collection, Document};
 use crate::{Cursor, DeleteResult, FindOptions, InsertManyResult};
 use domain::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
@@ -100,6 +98,19 @@ pub trait Repository<T: Serialize + DeserializeOwned + Unpin + Send + Sync> {
         let collection = self.get_collection();
         let res = collection
             .find_one_and_delete(doc! {"_id": id}, None)
+            .await?;
+        Ok(res)
+    }
+
+    async fn update(
+        &self,
+        id: String,
+        entity: &T,
+    ) -> Result<Option<T>, Box<dyn std::error::Error>> {
+        let collection = self.get_collection();
+        let update_doc = to_document(entity)?;
+        let res = collection
+            .find_one_and_update(doc! {"_id": id}, update_doc, None)
             .await?;
         Ok(res)
     }
