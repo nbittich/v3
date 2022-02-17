@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
-    use domain::{CreateUserCommand, Metadata};
     use domain::{Address, Profile, User};
+    use domain::{CreateUserCommand, Metadata};
     use futures_util::Future;
     use futures_util::StreamExt;
     use messenger::BasicAckOptions;
@@ -22,7 +22,19 @@ mod test {
             let _ = clone.publish(routing_key, &user).await.unwrap();
         });
         let publisher_fut2 = tokio::task::spawn(async move {
-            let _ = messenger2.publish("CreateUserCommand", &CreateUserCommand { domain_metadata: Metadata::default(), nickname:String::from("nordine"), password: String::from("kikoo"), confirm_password: String::from("kikoo"), email: String::from("kikoo@lol.com") }).await.unwrap();
+            let _ = messenger2
+                .publish(
+                    "CreateUserCommand",
+                    &CreateUserCommand {
+                        domain_metadata: Metadata::default(),
+                        nickname: String::from("nordine"),
+                        password: String::from("kikoo"),
+                        confirm_password: String::from("kikoo"),
+                        email: String::from("kikoo@lol.com"),
+                    },
+                )
+                .await
+                .unwrap();
         });
         let clone = Arc::clone(&messenger);
 
@@ -45,9 +57,7 @@ mod test {
                 .await
                 .unwrap();
         });
-        let _ =
-            futures_util::future::join_all(vec![publisher_fut2])
-                .await;
+        let _ = futures_util::future::join_all(vec![publisher_fut2]).await;
     }
 
     fn create_user() -> User {

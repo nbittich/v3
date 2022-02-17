@@ -4,11 +4,11 @@ use domain::{
 };
 use futures_util::StreamExt;
 use messenger::Messenger;
-use tracing_subscriber::FmtSubscriber;
 use std::sync::Arc;
 use store::{MongoRepository, Repository, StoreClient};
 use tokio::task::JoinHandle;
-use tracing::{Level};
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
 
 const APP_NAME: &str = "user_ms";
 const USER_COLLECTION: &str = "user";
@@ -28,11 +28,10 @@ async fn main() {
 
 fn setup_tracing() {
     let subscriber = FmtSubscriber::builder()
-    .with_max_level(Level::INFO)
-    .finish();
+        .with_max_level(Level::INFO)
+        .finish();
 
-tracing::subscriber::set_global_default(subscriber)
-    .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
 
 #[tracing::instrument(skip_all)]
