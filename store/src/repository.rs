@@ -1,7 +1,5 @@
-
-
-use crate::{doc, Collection, Document};
-use crate::{Cursor, DeleteResult, FindOptions, InsertManyResult};
+use crate::{doc, to_document, Collection, Document};
+use crate::{Cursor, DeleteResult, FindOptions, InsertManyResult, InsertOneResult};
 use domain::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 #[derive(Serialize, Deserialize)]
@@ -91,6 +89,11 @@ pub trait Repository<T: Serialize + DeserializeOwned + Unpin + Send + Sync> {
         Ok(res)
     }
 
+    async fn insert_one(&self, data: &T) -> anyhow::Result<InsertOneResult> {
+        let res = self.get_collection().insert_one(data, None).await?;
+        Ok(res)
+    }
+
     async fn find_by_id(&self, id: &str) -> Result<Option<T>, Box<dyn std::error::Error>> {
         let collection = self.get_collection();
         let res = collection.find_one(doc! {"_id": id}, None).await?;
@@ -100,6 +103,19 @@ pub trait Repository<T: Serialize + DeserializeOwned + Unpin + Send + Sync> {
         let collection = self.get_collection();
         let res = collection
             .find_one_and_delete(doc! {"_id": id}, None)
+            .await?;
+        Ok(res)
+    }
+
+    async fn update(
+        &self,
+        id: String,
+        entity: &T,
+    ) -> Result<Option<T>, Box<dyn std::error::Error>> {
+        let collection = self.get_collection();
+        let update_doc = to_document(entity)?;
+        let res = collection
+            .find_one_and_update(doc! {"_id": id}, update_doc, None)
             .await?;
         Ok(res)
     }

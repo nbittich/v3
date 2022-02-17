@@ -1,9 +1,8 @@
 use crate::OffsetDateTime;
 use crate::{Deserialize, Serialize};
 use std::ops::Deref;
-pub type RuntimeException = Box<dyn std::error::Error>; // because java is better
 
-#[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(PartialOrd, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct Id(String);
 impl Deref for Id {
     type Target = String;
@@ -18,6 +17,12 @@ impl Default for Id {
     }
 }
 
+impl From<String> for Id {
+    fn from(id: String) -> Self {
+        Id(id)
+    }
+}
+
 #[derive(
     PartialOrd, PartialEq, Debug, Default, Serialize, Deserialize, crate::WithJsonProcessor,
 )]
@@ -28,6 +33,12 @@ pub struct Metadata {
     updated_date: Option<OffsetDateTime>,
 }
 impl Metadata {
+    pub fn new_with_default(id: &Id) -> Metadata {
+        Metadata {
+            id: id.clone(),
+            ..Default::default()
+        }
+    }
     pub fn id(&self) -> &Id {
         &self.id
     }
@@ -59,9 +70,10 @@ pub trait WithMetadata {
 }
 pub trait WithJsonProcessor<'a> {
     type Output;
-    fn to_json(&self) -> Result<String, RuntimeException>;
-    fn to_json_pretty(&self) -> Result<String, RuntimeException>;
-    fn from_json(s: &'a str) -> Result<Self::Output, RuntimeException>;
+    fn to_json(&self) -> anyhow::Result<String>;
+    fn to_json_pretty(&self) -> anyhow::Result<String>;
+    fn from_json(s: &'a str) -> anyhow::Result<Self::Output>;
+    fn from_json_slice(s: &'a [u8]) -> anyhow::Result<Self::Output>;
 }
 
 #[cfg(test)]

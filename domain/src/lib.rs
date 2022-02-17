@@ -1,8 +1,9 @@
+mod command;
 mod common;
 mod user;
+pub use command::*;
 pub use common::Id;
 pub use common::Metadata;
-pub use common::RuntimeException;
 pub use common::WithJsonProcessor;
 pub use common::WithMetadata;
 pub use domain_macro::WithJsonProcessor;

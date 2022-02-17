@@ -6,11 +6,7 @@ use syn::{Data, DataStruct, Fields, Type};
 
 #[proc_macro_derive(WithMetadata)]
 pub fn with_metadata_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
     let ast = syn::parse(input).unwrap();
-
-    // Build the trait implementation
     impl_with_metadata_macro(&ast)
 }
 fn impl_with_metadata_macro(ast: &syn::DeriveInput) -> TokenStream {
@@ -67,17 +63,21 @@ fn impl_with_json_processor_macro(ast: &syn::DeriveInput) -> TokenStream {
         impl<'a> WithJsonProcessor<'a> for #name
         {
             type Output = #name;
-            fn to_json(&self) -> Result<String, Box<dyn std::error::Error>> {
+            fn to_json(&self) -> anyhow::Result<String>{
                 let json = serde_json::to_string(self)?;
                 Ok(json)
             }
 
-            fn to_json_pretty(&self) -> Result<String, Box<dyn std::error::Error>> {
+            fn to_json_pretty(&self) -> anyhow::Result<String> {
                 let json = serde_json::to_string_pretty(self)?;
                 Ok(json)
             }
-            fn from_json(s: &'a str) -> Result<Self::Output, Box<dyn std::error::Error>> {
+            fn from_json(s: &'a str) -> anyhow::Result<Self::Output> {
                 let obj: #name = serde_json::from_str(s)?;
+                Ok(obj)
+            }
+            fn from_json_slice(s: &'a [u8]) -> anyhow::Result<Self::Output>  {
+                let obj: #name = serde_json::from_slice(s)?;
                 Ok(obj)
             }
         }

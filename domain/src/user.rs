@@ -55,7 +55,7 @@ impl User {
     }
 }
 
-#[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(PartialOrd, PartialEq, Default, Debug, Serialize, Deserialize)]
 pub struct Profile {
     picture: Option<Metadata>,
     firstname: String,
@@ -87,6 +87,12 @@ impl Profile {
 }
 
 impl Profile {
+    pub fn new_with_default(email_address: &str) -> Profile {
+        Profile {
+            email_address: String::from(email_address),
+            ..Default::default()
+        }
+    }
     pub fn new(
         picture: Option<Metadata>,
         firstname: &str,
@@ -133,7 +139,7 @@ impl Profile {
     }
 }
 
-#[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(PartialOrd, PartialEq, Default, Debug, Serialize, Deserialize)]
 pub struct Address {
     street: String,
     number: String,

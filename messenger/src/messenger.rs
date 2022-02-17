@@ -1,5 +1,6 @@
+use deadpool_lapin::lapin::message::Delivery;
 use deadpool_lapin::lapin::options::{
-    BasicAckOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+    ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use deadpool_lapin::lapin::publisher_confirm::Confirmation;
 use deadpool_lapin::lapin::types::FieldTable;
@@ -10,16 +11,12 @@ use deadpool_lapin::lapin::{
 };
 use deadpool_lapin::{Config, CreatePoolError, Pool, Runtime};
 use domain::{Id, OffsetDateTime, WithJsonProcessor};
-use futures_util::{Future, StreamExt};
 
-use std::borrow::Borrow;
 use std::env::var;
-use std::error::Error;
-use std::sync::Arc;
 
 const AMQP_HOST: &str = "AMQP_HOST";
 const AMQP_PORT: &str = "AMQP_PORT";
-
+#[derive(Debug)]
 pub struct Messenger {
     pool: Pool,
     exchange: String,
@@ -54,7 +51,7 @@ impl Message {
 }
 
 impl Messenger {
-    pub async fn new(exchange: &str, application_name: &str) -> Result<Messenger, Box<dyn Error>> {
+    pub async fn new(exchange: &str, application_name: &str) -> anyhow::Result<Messenger> {
         let pool = Messenger::create_pool()?;
         let _ = Messenger::declare_exchange(&pool, exchange).await?;
         Ok(Messenger {
@@ -64,7 +61,7 @@ impl Messenger {
         })
     }
 
-    async fn declare_exchange(pool: &Pool, exchange: &str) -> Result<(), Box<dyn Error>> {
+    async fn declare_exchange(pool: &Pool, exchange: &str) -> anyhow::Result<()> {
         let conn = pool.clone().get().await?;
         let channel = conn.create_channel().await?;
         channel
@@ -84,7 +81,7 @@ impl Messenger {
         Ok(())
     }
 
-    pub async fn subscribe(&self, routing_key: &str) -> Result<Consumer, Box<dyn Error>> {
+    pub async fn subscribe(&self, routing_key: &str) -> anyhow::Result<Consumer> {
         let connection = self.pool.clone().get().await?;
         let channel = connection.create_channel().await?;
         let q = format!("{}_{routing_key}", self.application_name);
@@ -130,7 +127,7 @@ impl Messenger {
         &self,
         routing_key: &str,
         payload: &impl WithJsonProcessor<'a>,
-    ) -> Result<Confirmation, Box<dyn Error>> {
+    ) -> anyhow::Result<Confirmation> {
         let connection = self.pool.clone().get().await?;
         let channel = connection.create_channel().await?;
         let payload = payload.to_json()?;
@@ -167,31 +164,8 @@ impl Messenger {
     }
 }
 
-pub async fn consume_and_ack<F, Fut>(
-    messenger: Arc<Messenger>,
-    routing_key: String,
-    on_message: F,
-    close_after_message: Option<u32>, // close after x message
-) -> Result<(), Box<dyn Error>>
-where
-    F: Fn(Message) -> Fut,
-    Fut: Future<Output = Result<(), Box<dyn Error>>>,
-{
-    let mut consumer = messenger.subscribe(&routing_key).await?;
-    let mut count = 0;
-    while let Some(msg) = consumer.next().await {
-        let (channel, delivery) = msg.expect("error in consumer");
-        let data = &delivery.data;
-        let msg = Message::from_json(String::from_utf8_lossy(&data[..]).borrow())?;
-        let _ = on_message(msg).await?;
-        let _ = delivery.ack(BasicAckOptions::default()).await?;
-        count += 1;
-        if let Some(nb_message_before_close) = close_after_message {
-            if count == nb_message_before_close {
-                channel.close(100, "BYE").await?;
-                return Ok(());
-            }
-        }
-    }
-    Ok(())
+pub fn to_message(delivery: &Delivery) -> anyhow::Result<Message> {
+    let data = &delivery.data;
+    let msg = Message::from_json_slice(&data[..])?;
+    Ok(msg)
 }

@@ -116,6 +116,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.53"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94a45b455c14666b85fc40a019e8ab9eb75e3a124e05494f5397122bc9eb06e0"
+
+[[package]]
 name = "async-channel"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -578,6 +584,7 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 name = "domain"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "domain-macro",
  "serde",
  "serde_json",
@@ -589,6 +596,7 @@ dependencies = [
 name = "domain-macro"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "proc-macro2",
  "quote",
  "syn",
@@ -1026,6 +1034,7 @@ checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 name = "messenger"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "deadpool",
  "deadpool-lapin",
@@ -1037,6 +1046,7 @@ dependencies = [
  "tokio",
  "tokio-amqp 2.0.0",
  "tokio-executor-trait",
+ "tracing",
  "uuid",
 ]
 
@@ -1866,6 +1876,7 @@ dependencies = [
 name = "store"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "domain",
  "futures-util",
@@ -2296,6 +2307,24 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
+]
+
+[[package]]
+name = "user"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "domain",
+ "futures-util",
+ "messenger",
+ "serde",
+ "serde_json",
+ "store",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
