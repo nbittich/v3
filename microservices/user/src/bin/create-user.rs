@@ -80,13 +80,12 @@ async fn on_create_user_command(
             Ok(payload) => {
                 let user = User::from_create_command(payload);
                 let _ = repository.insert_one(&user).await?;
-                let id: Id = user.id.clone();
                 let email = String::from(user.profile.email_address());
                 let confirmation = messenger
                     .publish(
                         messenger::messages::USER_CREATED_EVENT,
                         &UserCreatedEvent {
-                            domain_metadata: Metadata::new_with_default(&id),
+                            domain_metadata: Metadata::new_with_default(&user.id),
                             email,
                             nickname: user.nickname,
                         },

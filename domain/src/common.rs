@@ -17,21 +17,14 @@ impl Default for Id {
     }
 }
 
-impl From<String> for Id {
-    fn from(id: String) -> Self {
-        Id(id)
-    }
-}
-
-#[derive(
-    PartialOrd, PartialEq, Debug, Default, Serialize, Deserialize, crate::WithJsonProcessor,
-)]
+#[derive(PartialOrd, PartialEq, Debug, Serialize, Deserialize, crate::WithJsonProcessor)]
 pub struct Metadata {
     id: Id,
     version: Option<u32>,
     creation_date: Option<OffsetDateTime>,
     updated_date: Option<OffsetDateTime>,
 }
+
 impl Metadata {
     pub fn new_with_default(id: &Id) -> Metadata {
         Metadata {
@@ -61,6 +54,17 @@ impl Metadata {
             self.updated_date = Some(OffsetDateTime::now_utc());
         } else {
             self.creation_date = Some(OffsetDateTime::now_utc());
+        }
+    }
+}
+
+impl Default for Metadata {
+    fn default() -> Self {
+        Self {
+            id: Default::default(),
+            version: Some(1),
+            creation_date: Some(OffsetDateTime::now_utc()),
+            updated_date: Default::default(),
         }
     }
 }
